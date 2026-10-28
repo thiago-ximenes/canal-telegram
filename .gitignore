@@ -1,0 +1,7 @@
+node_modules/
+estado/
+modelos/
+*.log
+.env
+.env.*
+!.env.exemplo

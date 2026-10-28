@@ -1,0 +1,73 @@
+# O daemon nao precisa de build: imagem oficial do Node e um volume com o codigo.
+# O token mora SO neste container -- o agente, que roda ao lado, nunca o ve.
+services:
+  telegram:
+    image: node:24-alpine
+    container_name: telegram-escuta
+    restart: unless-stopped
+    networks: [canal]
+    # A bridge do Docker pode nao rotear IPv6 enquanto o DNS devolve AAAA: o Happy
+    # Eyeballs do Node tenta IPv6, espera 250ms e aborta. As duas flags juntas
+    # resolvem -- --dns-result-order sozinha nao basta.
+    command: node --dns-result-order=ipv4first --no-network-family-autoselection /app/escuta.cjs
+    environment:
+      CANAL_DIR: /estado
+      CANAL_NOME: canal
+      CANAL_COMANDOS: /app/../comandos/comandos.cjs   # opcional
+      FALA: http://fala:8080
+      TRANSCRITOR: http://transcreve:8080
+    volumes:
+      - ../bin:/app:ro
+      - ./estado:/estado                  # telegram.json {token, chat} + respostas/
+      - ./comandos:/comandos:ro           # opcional
+    mem_limit: 256m
+    security_opt: [no-new-privileges:true]
+    init: true
+
+  # Seu agente: ve a MESMA pasta como /entrada, e so. Sem token, sem rede do bot.
+  agente:
+    image: node:24-alpine
+    container_name: agente
+    restart: unless-stopped
+    networks: [canal]
+    command: node /app/agente.cjs
+    volumes:
+      - ./agente:/app:ro
+      - ./estado/respostas:/entrada
+    init: true
+
+  transcreve:
+    build: ../servicos/transcreve
+    image: transcreve:local
+    container_name: transcreve
+    restart: unless-stopped
+    networks: [canal]
+    # O modelo (487 MB) fica fora da imagem para nao ser rebaixado a cada rebuild.
+    volumes: [./modelos:/modelos:ro]
+    environment:
+      MODELO: /modelos/ggml-small.bin
+      IDIOMA: pt
+      THREADS: "4"
+      VOCABULARIO: "Node, TypeScript, Postgres, deploy, pull request."
+    read_only: true
+    tmpfs: [/tmp:size=256m]
+    mem_limit: 2g
+    security_opt: [no-new-privileges:true]
+    init: true
+
+  fala:
+    build: ../servicos/fala
+    image: fala:local
+    container_name: fala
+    restart: unless-stopped
+    networks: [canal]
+    environment:
+      VOZ: pt-BR-AntonioNeural
+    read_only: true
+    tmpfs: [/tmp:size=256m]
+    mem_limit: 512m
+    security_opt: [no-new-privileges:true]
+    init: true
+
+networks:
+  canal:
