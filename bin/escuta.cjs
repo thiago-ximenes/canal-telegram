@@ -81,6 +81,11 @@ fs.mkdirSync(FILA, { recursive: true });
 // mesmo caminho, porque ./telegram/estado/respostas e montado la como /entrada.
 // Sem isto, qualquer mensagem que nao fosse texto puro era descartada em silencio.
 const ANEXOS = RESP + '/_anexos';
+// O mesmo arquivo tem dois caminhos: ANEXOS e onde o CANAL escreve; ANEXOS_VISTA e onde
+// o AGENTE enxerga o mesmo mount. Nao da para derivar um do outro -- quem monta e o
+// compose, e cada stack monta diferente. O default e o do canal de carreira, onde o
+// agente ve /entrada.
+const ANEXOS_VISTA = process.env.CANAL_ANEXOS_NO_AGENTE || '/entrada/_anexos';
 fs.mkdirSync(ANEXOS, { recursive: true });
 
 async function baixar(fileId, nomeSugerido) {
@@ -627,7 +632,7 @@ async function trata(u) {
       // qualquer anexo e ninguem perde o recado.
       const fala = anexo.tipo === 'audio' ? await transcrever(`${ANEXOS}/${r.nome}`) : null;
       if (!fala) {
-        anota(`[${anexo.tipo} em /entrada/_anexos/${r.nome}, ${Math.round(r.bytes / 1024)} KB]${legenda ? ' ' + legenda : ''}`, null, null);
+        anota(`[${anexo.tipo} em ${ANEXOS_VISTA}/${r.nome}, ${Math.round(r.bytes / 1024)} KB]${legenda ? ' ' + legenda : ''}`, null, null);
         return;
       }
       log('audio transcrito', fala.length, 'chars');

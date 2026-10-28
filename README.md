@@ -114,6 +114,15 @@ voz de alguém para serviço de terceiro é uma decisão, não um detalhe). `ser
 faz o caminho de volta com edge-tts. Voz padrão `pt-BR-AntonioNeural` — uma voz
 multilíngue falando português soa artificial o bastante para ele desligar o áudio.
 
+Os dois são alcançados por nome na rede do Docker (`http://transcreve:8080`,
+`http://fala:8080`), e `TRANSCRITOR`/`FALA` trocam o endereço. Canal em outro compose
+que queira a mesma voz entra na rede onde esses containers já estão — foi o que faltou
+no bot do zelador, e todo recado de voz chegava como anexo mudo.
+
+Quando o canal e o agente montam o mesmo diretório em caminhos diferentes, a anotação
+`[audio em …]` precisa do caminho que o **agente** vê: `CANAL_ANEXOS_NO_AGENTE`
+(padrão `/entrada/_anexos`). Errado, o agente procura o arquivo onde ele não existe.
+
 ## Comandos próprios
 
 O núcleo não sabe o que é um currículo nem uma cota de API. `CANAL_COMANDOS` aponta
