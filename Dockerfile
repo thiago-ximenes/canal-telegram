@@ -8,7 +8,7 @@
 FROM node:24-alpine
 
 # Nenhuma dependencia: o daemon usa so o que vem no Node (fetch, fs, http).
-COPY bin/ /app/
+COPY --chmod=755 bin/ /app/
 
 # Roda como root de proposito. CANAL_DIR e um volume do host (estado, anexos, respostas) e
 # o dono desses arquivos varia por maquina; trocar para USER node quebra a escrita em
