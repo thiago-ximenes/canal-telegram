@@ -74,6 +74,24 @@ EOF
 A escolha dele volta em `caixa.tsv` **com a pergunta junto** — uma sessão retomada
 só enxerga essa linha, e "Libera" sozinho não diz a que pergunta responde.
 
+### Quem pode mandar
+
+`TELEGRAM_CHAT` diz para onde o canal **envia**; quem pode **falar** é outra pergunta.
+Em conversa privada os dois números são iguais e o padrão resolve: só o seu chat entra
+na caixa, update de qualquer outro é descartado com uma linha `recusado 999@999` no log
+(uma por remetente, não uma por mensagem).
+
+Num grupo não resolve: lá `chat.id` é o grupo e quem fala é qualquer membro. Então
+liste os **ids humanos**:
+
+```bash
+export CANAL_DONOS=987654321,123456789    # ou "donos" no telegram.json
+```
+
+Um update passa se o remetente **ou** o chat estiver na lista — ou seja, pôr o id de um
+grupo em `CANAL_DONOS` libera todo mundo que está nele. Para um agente que roda comando
+na sua máquina, liste pessoas, nunca o grupo.
+
 ### Em Docker
 
 O canal é um serviço como qualquer outro — `exemplos/compose.yml` sobe ele junto dos

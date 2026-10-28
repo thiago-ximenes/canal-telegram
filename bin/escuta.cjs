@@ -29,6 +29,22 @@ const cred = process.env.TELEGRAM_TOKEN
   : JSON.parse(fs.readFileSync(DIR + '/telegram.json', 'utf8'));
 const { token, chat } = cred;
 if (!token || !chat) throw new Error('faltou TELEGRAM_TOKEN/TELEGRAM_CHAT (ou $CANAL_DIR/telegram.json)');
+// Quem pode MANDAR, que nao e a mesma pergunta de para onde se ENVIA. Em conversa
+// privada os dois numeros coincidem, e o padrao (so o chat de destino) basta. Num
+// grupo nao: ali chat.id e o grupo e quem fala e qualquer um dos membros, entao
+// CANAL_DONOS passa a lista de ids humanos autorizados. O canal nao e um bot de
+// consulta -- do outro lado tem um agente com acesso a maquina.
+const DONOS = new Set(
+  String(process.env.CANAL_DONOS || cred.donos || chat)
+    .split(/[,\s]+/).filter(Boolean),
+);
+const recusados = new Set();
+const autorizado = (quem, onde) => {
+  if (DONOS.has(String(quem)) || DONOS.has(String(onde))) return true;
+  const marca = `${quem}@${onde}`;
+  if (!recusados.has(marca)) { recusados.add(marca); log('recusado', marca); }
+  return false;
+};
 const OFF = DIR + '/telegram-offset.json';
 fs.mkdirSync(PEND, { recursive: true });
 
@@ -557,6 +573,7 @@ async function comando(texto) {
 // A enquete devolve as marcacoes dele por poll_answer, nao por mensagem: sem isso a
 // escolha multipla seria so enfeite na tela.
 async function tratarEnquete(pa) {
+  if (!autorizado(pa.user && pa.user.id, chat)) return;
   const achado = fs.readdirSync(PEND).filter((f) => f.endsWith('.json'))
     .map((f) => { try { return JSON.parse(fs.readFileSync(PEND + '/' + f, 'utf8')); } catch { return null; } })
     .find((x) => x && x.pollId === pa.poll_id);
@@ -572,7 +589,9 @@ async function tratarEnquete(pa) {
 async function trata(u) {
   if (u.poll_answer) return tratarEnquete(u.poll_answer);
   const msg = u.message || (u.callback_query && u.callback_query.message);
-  if (!msg || String(msg.chat.id) !== String(chat)) return;
+  if (!msg) return;
+  const quem = (u.callback_query || u.message || {}).from;
+  if (!autorizado(quem && quem.id, msg.chat.id)) return;
   // Guarda a ultima mensagem DELE para "responder" e "reacao" terem onde se prender.
   if (u.message) { try { fs.writeFileSync(ULTIMA, String(u.message.message_id)); } catch {} }
 
