@@ -49,6 +49,7 @@ que valem para qualquer envio e as receitas prontas.
 | `servicos/fala` | texto → recado de voz (edge-tts + ffmpeg, OGG/Opus) |
 | `servicos/transcreve` | recado de voz → texto (whisper.cpp, na sua máquina) |
 | `exemplos/` | compose, comandos próprios, `.env` |
+| `Dockerfile` | o canal como imagem própria, para subir em compose |
 
 Node 20+. Sem dependência de runtime: o daemon usa só `fetch` e `fs`. O cartão
 precisa de Playwright (Chromium); os dois serviços de voz são containers.
@@ -72,6 +73,20 @@ EOF
 
 A escolha dele volta em `caixa.tsv` **com a pergunta junto** — uma sessão retomada
 só enxerga essa linha, e "Libera" sozinho não diz a que pergunta responde.
+
+### Em Docker
+
+O canal é um serviço como qualquer outro — `exemplos/compose.yml` sobe ele junto dos
+dois de voz:
+
+```bash
+docker compose build canal && docker compose up -d canal
+```
+
+A imagem carrega o `bin/`, então o que está no ar é o que foi buildado, não o que
+alguém editou no disco agora. Só o `comandos/` fica fora dela, montado: é o código do
+*seu* projeto, e ele muda num ritmo diferente do canal. Trocar de versão não perde
+nada — offset, pendências e `caixa.tsv` vivem em `CANAL_DIR`, no host.
 
 ## Voz nos dois sentidos
 

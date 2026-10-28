@@ -1,0 +1,4 @@
+# O contexto e so o daemon: docs, exemplos e os servicos de voz tem build proprio.
+*
+!bin
+!bin/**

@@ -1,25 +1,21 @@
-# O daemon nao precisa de build: imagem oficial do Node e um volume com o codigo.
-# O token mora SO neste container -- o agente, que roda ao lado, nunca o ve.
+# Tres servicos independentes: o canal, e os dois de audio que ele usa se existirem.
+# O token mora SO no container do canal -- o agente, que roda ao lado, nunca o ve.
 services:
-  telegram:
-    image: node:24-alpine
-    container_name: telegram-escuta
+  canal:
+    build: ..                         # o Dockerfile na raiz do repo
+    image: canal-telegram:local
+    container_name: canal-telegram
     restart: unless-stopped
     networks: [canal]
-    # A bridge do Docker pode nao rotear IPv6 enquanto o DNS devolve AAAA: o Happy
-    # Eyeballs do Node tenta IPv6, espera 250ms e aborta. As duas flags juntas
-    # resolvem -- --dns-result-order sozinha nao basta.
-    command: node --dns-result-order=ipv4first --no-network-family-autoselection /app/escuta.cjs
     environment:
       CANAL_DIR: /estado
       CANAL_NOME: canal
-      CANAL_COMANDOS: /app/../comandos/comandos.cjs   # opcional
+      CANAL_COMANDOS: /comandos/comandos.cjs   # opcional
       FALA: http://fala:8080
       TRANSCRITOR: http://transcreve:8080
     volumes:
-      - ../bin:/app:ro
       - ./estado:/estado                  # telegram.json {token, chat} + respostas/
-      - ./comandos:/comandos:ro           # opcional
+      - ./comandos:/comandos:ro           # opcional, e so isto fica fora da imagem
     mem_limit: 256m
     security_opt: [no-new-privileges:true]
     init: true
